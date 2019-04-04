@@ -25,7 +25,7 @@ public class TsSourceFactory {
 
 	}
 
-	public TsSourceFactory(File m3u8, String savePath,Map<String, List<String>> headers) {
+	public TsSourceFactory(File m3u8, String savePath, Map<String, List<String>> headers) {
 		this.m3u8 = m3u8;
 		this.savePath = savePath;
 		this.headers = headers;
@@ -41,9 +41,9 @@ public class TsSourceFactory {
 			for (int i = 0; (line = br.readLine()) != null; i++) {
 				if (line.contains("https")) {
 					TsSource tsSource = new TsSource();
-					tsSource.setName(i + ".ts");
 					tsSource.setUrl(line);
 					tsSource.setHeaders(headers);
+					File savePath = new File(this.savePath + File.pathSeparator + i + ".ts");
 					tsSource.setSavePath(savePath);
 					queue.add(tsSource);
 				}

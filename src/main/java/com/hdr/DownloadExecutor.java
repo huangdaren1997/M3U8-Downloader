@@ -2,7 +2,7 @@ package com.hdr;
 
 import cn.hutool.http.Header;
 import com.hdr.common.Headers;
-import com.hdr.downloader.AvgleTsDownloader;
+import com.hdr.downloader.TsDownloader;
 import com.hdr.ts.TsSource;
 import com.hdr.ts.TsSourceFactory;
 
@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Huang Da Ren
@@ -82,7 +81,7 @@ public class DownloadExecutor {
 
 		ExecutorService executor = Executors.newFixedThreadPool(10);
 		for (int i = 0; i < 10; i++) {
-			executor.submit(new AvgleTsDownloader(queue));
+			executor.submit(new TsDownloader(queue));
 		}
 
 		executor.shutdown();
@@ -169,9 +168,9 @@ public class DownloadExecutor {
 
 	public static void main(String[] args) {
 		File m3u8 = new File("/home/hdr/video.m3u8");
-		String savePath = "/home/hdr/Videos/hello";
-		String referer = "https://avgle.com/video/Ts8PrPxkoPP/%E9%9F%93%E5%9C%8B%E6%BC%94%E8%97%9D%E5%9C%88%E8%B3%A3%E6%B7%AB%E5%81%B7%E6%8B%8D%E6%82%B2%E6%85%98%E4%BA%8B%E4%BB%B6-south-korean-prostitution-vol-19";
-		String fimName = "test.mp4";
+		String savePath = "/home/hdr/Videos/chn-153";
+		String referer = "https://avgle.com/video/1vdoioH7No1/%E6%96%B0-%E7%B4%A0%E4%BA%BA%E5%A8%98-%E3%81%8A%E8%B2%B8%E3%81%97%E3%81%97%E3%81%BE%E3%81%99-74-%E4%BB%AE%E5%90%8D-%E6%BA%80%E5%B3%B6%E3%81%95%E3%81%8A%E3%82%8A-%E5%A4%A7%E5%AD%A6%E7%94%9F-20%E6%AD%B3-chn-153";
+		String fimName = "满岛纱织.mp4";
 
 		Map<String, List<String>> headers = Headers.avgleHeader();
 		headers.put(Header.REFERER.toString(), Arrays.asList(referer));

@@ -3,6 +3,7 @@ package com.hdr.ts;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -12,8 +13,10 @@ import java.util.Map;
 @Getter
 @Setter
 public class TsSource {
-	private String savePath;
-	private String name;
+
+	private File savePath;
 	private String url;
 	private Map<String, List<String>> headers;
+	private int failureTime = 0;
+
 }
