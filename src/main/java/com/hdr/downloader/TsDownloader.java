@@ -12,10 +12,7 @@ import lombok.extern.java.Log;
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
@@ -38,6 +35,8 @@ public class TsDownloader {
 	}
 
 	public void download() {
+		int total = tsQueue.size();
+		float progress;
 
 		int nThreads = 10;
 		ExecutorService executor = Executors.newFixedThreadPool(nThreads);
@@ -45,8 +44,17 @@ public class TsDownloader {
 			executor.submit(new Downloader());
 		}
 		executor.shutdown();
-		while (!executor.isTerminated()) {
 
+		ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
+
+		while (!executor.isTerminated()) {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			progress = ((float) tsQueue.size()) / total * 100;
+			log.log(Level.INFO, "正在下载，剩余{0}%", progress);
 		}
 
 	}
@@ -59,7 +67,7 @@ public class TsDownloader {
 
 			while (true) {
 				try {
-					Ts ts = tsQueue.poll(1, TimeUnit.MINUTES);
+					Ts ts = tsQueue.poll(10, TimeUnit.SECONDS);
 					if (ts == null) {
 						log.log(Level.WARNING, "thread {0} ts == null", Thread.currentThread().getName());
 						break;
@@ -72,12 +80,12 @@ public class TsDownloader {
 						try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(ts.getSavePath()))) {
 							bos.write(response.bodyBytes());
 							bos.flush();
-							log.log(Level.INFO, "{0}下载成功", ts.getSavePath());
 						} catch (IOException e) {
 							e.printStackTrace();
 						}
 					} else {
 						log.log(Level.INFO, "{0}下载失败", ts.getSavePath());
+						break;
 					}
 				} catch (InterruptedException e) {
 					e.printStackTrace();
