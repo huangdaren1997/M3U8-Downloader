@@ -1,58 +1,48 @@
 package com.hdr.downloader;
 
-import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpResponse;
-import cn.hutool.http.HttpStatus;
-import com.hdr.ts.TsSource;
+import com.hdr.ts.Ts;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.extern.java.Log;
 
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Huang Da Ren
  */
-public class TsDownloader implements Runnable {
+@Log
+@Getter
+@Setter
+@NoArgsConstructor
+public class TsDownloader {
 
-	private BlockingQueue<TsSource> queue;
-	private static final Logger logger = Logger.getLogger(TsDownloader.class.getName());
 
-	public TsDownloader(BlockingQueue<TsSource> queue) {
-		this.queue = queue;
+	private BlockingQueue<Ts> tsQueue;
+
+	private AtomicInteger failureTime = new AtomicInteger(0);
+
+	public TsDownloader(BlockingQueue<Ts> tsQueue) {
+		this.tsQueue = tsQueue;
 	}
 
+	public void download() {
 
-	public void download(TsSource ts) {
-		HttpResponse response = HttpRequest.get(ts.getUrl())
-				.header(ts.getHeaders())
-				.execute();
-
-		if (response.getStatus() == HttpStatus.HTTP_OK) {
-			try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(ts.getSavePath()))) {
-				bos.write(response.bodyBytes());
-				bos.flush();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+		int nThreads = 10;
+		ExecutorService executor = Executors.newFixedThreadPool(nThreads);
+		for (int i = 0; i < nThreads; i++) {
+			executor.submit(new Downloader(tsQueue));
 		}
-		logger.log(Level.WARNING, "failure to download {0}", ts.getSavePath().getName());
+		executor.shutdown();
+		while (!executor.isTerminated()) {
+
+		}
+
+
 	}
 
-	@Override
-	public void run() {
-		while (true) {
-			try {
-				TsSource tsSource = queue.poll(10, TimeUnit.SECONDS);
-				if (tsSource == null) break;
-				download(tsSource);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-	}
 
 }
