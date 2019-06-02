@@ -48,7 +48,6 @@ public class DownloadExecutor {
 		TsDownloader tsDownloader = new TsDownloader(tsQueue);
 		tsDownloader.download();
 		TsFusion.merge(savePath, filmName);
-
 	}
 
 

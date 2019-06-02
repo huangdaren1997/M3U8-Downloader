@@ -1,9 +1,6 @@
 package com.hdr.downloader;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -36,7 +33,7 @@ public class TsFusion {
 	private static File[] listFile(File directory) {
 		assert (directory != null);
 		if (directory.exists() && directory.isDirectory()) {
-			File[] files = directory.listFiles();
+			File[] files = directory.listFiles((dir, name) -> name.contains(".ts"));
 			assert (files != null);
 			Arrays.sort(files, (x, y) -> {
 				String xStr = x.getName().split("\\.")[0];
