@@ -1,4 +1,4 @@
-package com.hdr.downloader;
+package com.hdr.download;
 
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
@@ -38,15 +38,14 @@ public class TsDownloader {
 		int total = tsQueue.size();
 		float progress;
 
-		int nThreads = 10;
-		ExecutorService executor = Executors.newFixedThreadPool(nThreads);
-		for (int i = 0; i < nThreads; i++) {
+		ExecutorService executor = Executors.newFixedThreadPool(10);
+
+		for (int i = 0; i < total; i++) {
 			executor.submit(new Downloader());
 		}
 		executor.shutdown();
 
-		ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
-
+		// 监听下载情况
 		while (!executor.isTerminated()) {
 			try {
 				Thread.sleep(1000);
@@ -65,32 +64,29 @@ public class TsDownloader {
 		@Override
 		public void run() {
 
-			while (true) {
-				try {
-					Ts ts = tsQueue.poll(10, TimeUnit.SECONDS);
-					if (ts == null) {
-						log.log(Level.WARNING, "thread {0} ts == null", Thread.currentThread().getName());
-						break;
-					}
-					HttpResponse response = HttpRequest.get(ts.getUrl())
-							.header(ts.getHeaders())
-							.execute();
-
-					if (response.getStatus() == HttpStatus.HTTP_OK) {
-						try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(ts.getSavePath()))) {
-							bos.write(response.bodyBytes());
-							bos.flush();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-					} else {
-						log.log(Level.INFO, "{0}下载失败", ts.getSavePath());
-						break;
-					}
-				} catch (InterruptedException e) {
-					e.printStackTrace();
+			try {
+				Ts ts = tsQueue.poll(1, TimeUnit.SECONDS);
+				if (ts == null) {
+					log.log(Level.WARNING, "thread {0} ts == null", Thread.currentThread().getName());
+					return;
 				}
 
+				HttpResponse response = HttpRequest.get(ts.getUrl())
+						.header(ts.getHeaders())
+						.execute();
+
+				if (response.getStatus() == HttpStatus.HTTP_OK) {
+					try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(ts.getSavePath()))) {
+						bos.write(response.bodyBytes());
+						bos.flush();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				} else {
+					log.log(Level.INFO, "{0}下载失败", ts.getSavePath());
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
 
 		}

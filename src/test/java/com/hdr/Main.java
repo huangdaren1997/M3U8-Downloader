@@ -1,8 +1,8 @@
 package com.hdr;
 
-import com.hdr.avgle.AvgleHeader;
-import com.hdr.avgle.AvgleTsFactory;
-import com.hdr.ts.AbstractTsFactory;
+import com.hdr.header.AvgleHeader;
+import com.hdr.ts.GeneralTsFactory;
+import com.hdr.ts.TsFactory;
 import lombok.extern.java.Log;
 import org.junit.Test;
 
@@ -19,22 +19,35 @@ public class Main {
 
 
 	@Test
-	public void download() {
+	public void avgleDownloader() {
 		long start = System.currentTimeMillis();
 
 		File m3u8 = new File("/home/hdr/video.m3u8");
-		String savePath = "/home/hdr/Videos/佐佐木明希";
-		String referer = "https://avgle.com/video/CUGlwl1Rxll/121914-760-%E6%85%9F%E5%93%AD%E3%81%AE%E5%A5%B3%E6%95%99%E5%B8%AB-%E5%BE%8C%E7%B7%A8-%E3%81%A0%E3%82%89%E3%81%97%E3%81%AA%E3%81%84%E7%94%9F%E3%81%8D%E7%89%A9%E3%81%AB%E5%A0%95%E3%81%A1%E3%81%9F%E5%A5%B3-%E5%A4%A7%E6%A1%A5%E6%9C%AA%E4%B9%85";
-		String fimName = "慟哭女教師下.mp4";
-		Map<String, List<String>> headers = AvgleHeader.header(referer);
+		String savePath = "/home/hdr/Videos/av";
+		String referer = "https://avgle.com/video/vBZSZSd6KS1/%E9%AB%98%E6%B8%85%E4%B8%AD%E6%96%87%E5%AD%97%E5%B9%95-venu-442-%E4%BA%BA%E5%A6%BB%E6%A4%8E%E5%90%8D%E7%94%B1%E5%A5%88%E5%92%8C%E5%84%BF%E5%AD%90%E4%B8%8D%E8%83%BD%E5%91%8A%E8%AF%89%E4%B8%88%E5%A4%AB%E7%9A%84%E7%A7%98%E5%AF%86";
+		String fimName = "椎名由奈的禁忌之恋.mp4";
 
-		AbstractTsFactory tsFactory = new AvgleTsFactory(savePath, headers);
+		TsFactory tsFactory = new GeneralTsFactory(savePath, AvgleHeader.header(referer));
 
-		DownloadExecutor downloadExecutor = new DownloadExecutor(m3u8, savePath, fimName, tsFactory);
-		downloadExecutor.execute();
+		new DownloadExecutor(m3u8, savePath, fimName, tsFactory).execute();
 
 		long end = System.currentTimeMillis();
-		float costTime = ((float) end - start) / 1000 / 60;
-		log.log(Level.INFO, "{0}min", costTime);
+		log.log(Level.INFO, "{0}s", (end - start) / 1000);
+	}
+
+	@Test
+	public void javdoveDownloader() {
+		long start = System.currentTimeMillis();
+
+		File m3u8 = new File("/home/hdr/video.m3u8");
+		String savePath = "/home/hdr/Videos/自拍";
+		String fimName = "长相很漂亮美女.mp4";
+
+		TsFactory tsFactory = new GeneralTsFactory(savePath, null);
+
+		new DownloadExecutor(m3u8, savePath, fimName, tsFactory).execute();
+
+		long end = System.currentTimeMillis();
+		log.log(Level.INFO, "{0}s", (end - start) / 1000);
 	}
 }

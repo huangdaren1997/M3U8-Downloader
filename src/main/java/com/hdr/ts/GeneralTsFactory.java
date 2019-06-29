@@ -1,9 +1,4 @@
-package com.hdr.avgle;
-
-import com.hdr.ts.AbstractTsFactory;
-import com.hdr.ts.Ts;
-import lombok.Getter;
-import lombok.Setter;
+package com.hdr.ts;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -13,21 +8,18 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
- * @author Huang Da Ren
+ * @author hdr
  */
-@Getter
-@Setter
-public class AvgleTsFactory extends AbstractTsFactory {
+public class GeneralTsFactory implements TsFactory{
 
 	private Map<String, List<String>> tsHeaders;
 	private String tsSavePath;
 	private final static String SUFFIX = ".ts";
 
-	public AvgleTsFactory(String tsSavePath, Map<String, List<String>> tsHeaders) {
+	public GeneralTsFactory(String tsSavePath, Map<String, List<String>> tsHeaders) {
 		this.tsSavePath = tsSavePath;
 		this.tsHeaders = tsHeaders;
 	}
-
 
 	@Override
 	public BlockingQueue<Ts> produce(File m3u8) {
@@ -53,6 +45,4 @@ public class AvgleTsFactory extends AbstractTsFactory {
 
 		return queue;
 	}
-
-
 }

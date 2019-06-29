@@ -1,4 +1,4 @@
-package com.hdr.downloader;
+package com.hdr.download;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -10,7 +10,7 @@ import java.util.List;
  *
  * @author Huang Da Ren
  */
-public class TsFusion {
+public class TsSynthesizer {
 
 	/**
 	 * 合并ts文件，然后转换成MP4格式的视频
