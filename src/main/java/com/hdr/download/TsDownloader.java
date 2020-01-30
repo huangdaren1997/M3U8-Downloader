@@ -71,9 +71,7 @@ public class TsDownloader {
 					return;
 				}
 
-				HttpResponse response = HttpRequest.get(ts.getUrl())
-						.header(ts.getHeaders())
-						.execute();
+				HttpResponse response = HttpRequest.get(ts.getUrl()).header(ts.getHeaders()).execute();
 
 				if (response.getStatus() == HttpStatus.HTTP_OK) {
 					try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(ts.getSavePath()))) {

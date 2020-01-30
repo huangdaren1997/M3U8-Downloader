@@ -1,6 +1,10 @@
 package com.hdr.download;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -10,6 +14,7 @@ import java.util.List;
  *
  * @author Huang Da Ren
  */
+@Slf4j
 public class TsSynthesizer {
 
 	/**
@@ -19,15 +24,16 @@ public class TsSynthesizer {
 	 * @param filmName       最终生成的视频的名字
 	 */
 	public static void merge(String tsFileLocation, String filmName) {
-		File[] tsFiles = listFile(new File(tsFileLocation));
+		File tsDir = new File(tsFileLocation);
+		File[] tsFiles = listFile(tsDir);
 		assert tsFiles != null;
 		List<String> cms = createCommands(tsFiles, filmName);
+		cms.forEach(System.out::println);
 		try {
 			executeCommand(cms, tsFileLocation);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		cleanUp(tsFiles);
 	}
 
 	private static File[] listFile(File directory) {
@@ -57,8 +63,8 @@ public class TsSynthesizer {
 	 */
 	private static List<String> createCommands(File[] tsFiles, String filmName) {
 		ArrayList<String> cms = new ArrayList<>();
-		cms.add("/bin/bash");
-		cms.add("-c");
+		cms.add("ubuntu1804.exe");
+		cms.add("run");
 
 		StringBuilder sb = new StringBuilder();
 		sb.append("ffmpeg -i concat:");
@@ -90,6 +96,15 @@ public class TsSynthesizer {
 	private static void cleanUp(File[] files) {
 		for (File f : files) {
 			f.delete();
+		}
+	}
+
+	public static void cleanUp(String tsFileLocation) {
+		try {
+			Files.delete(Paths.get(tsFileLocation));
+		} catch (IOException e) {
+			e.printStackTrace();
+			log.error("临时目录{}删除失败",tsFileLocation);
 		}
 	}
 }
