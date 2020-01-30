@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -32,6 +33,14 @@ public class Main {
 	private static Map<String, List<String>> header;
 	private static String tempPath;
 	private static String filmPath;
+
+
+	private static void downloadP() {
+		initByProperties();
+		doDownload();
+
+		TsSynthesizer.merge(tempPath, filmPath);
+	}
 
 
 	private static void download() {
@@ -61,7 +70,6 @@ public class Main {
 	}
 
 
-
 	private static void init() {
 		Scanner scanner = new Scanner(System.in);
 		for (; ; ) {
@@ -89,6 +97,38 @@ public class Main {
 		String name = scanner.nextLine();
 		tempPath = basePath.endsWith(File.separator) ? String.format("%s.%s", basePath, name) : String.format("%s%s.%s", basePath, File.separator, name);
 		filmPath = String.format("../%s.mp4", name);
+
+	}
+
+	private static void initByProperties() {
+		Scanner scanner = new Scanner(System.in);
+		log.info("请输入properties文件所在路径:");
+		String path = scanner.nextLine();
+		try (BufferedReader br = Files.newBufferedReader(Paths.get(path))) {
+			Properties prop = new Properties();
+			prop.load(br);
+
+			String m3u8Path = prop.getProperty("m3u8Path");
+			String videoUrl = prop.getProperty("videoUrl");
+			String savePath = prop.getProperty("savePath");
+			String saveName = prop.getProperty("saveName");
+
+			assert videoUrl != null;
+			assert saveName != null;
+
+
+			if (!(new File(m3u8Path).exists())) throw new RuntimeException("m3u8Path有误:" + m3u8Path);
+			if (!(new File(savePath).exists())) throw new RuntimeException("savePath有误:" + savePath);
+
+
+			m3u8 = new File(m3u8Path);
+			header = AvgleHeader.header(videoUrl);
+			tempPath = savePath.endsWith(File.separator) ? String.format("%s.%s", savePath, saveName) : String.format("%s%s.%s", savePath, File.separator, saveName);
+			filmPath = String.format("../%s.mp4", saveName);
+
+		} catch (IOException e) {
+			log.error("文件{}不存在", path, e);
+		}
 
 	}
 
@@ -140,6 +180,8 @@ public class Main {
 			merge();
 		} else if (args[0].equals("clean")) {
 
+		} else if (args[0].equals("downloadP")) {
+			downloadP();
 		} else {
 			log.warn("unknown option {}", args[0]);
 		}
@@ -166,17 +208,17 @@ public class Main {
 
 		@Override
 		public void run() {
-			try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(savePath + File.separator + tsName))){
-				HttpResponse response = HttpRequest.get(tsUrl).header(header).timeout(10*1000).execute();
+			try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(savePath + File.separator + tsName))) {
+				HttpResponse response = HttpRequest.get(tsUrl).header(header).timeout(10 * 1000).execute();
 				if (response.getStatus() == HttpStatus.HTTP_OK) {
-						bos.write(response.bodyBytes());
-						bos.flush();
+					bos.write(response.bodyBytes());
+					bos.flush();
 				} else {
-					log.warn("{}下载失败:{}", tsName,response.getStatus());
+					log.warn("{}下载失败:{}", tsName, response.getStatus());
 				}
 			} catch (Exception e) {
 				log.warn("{}下载失败:", tsName, e);
-			}finally {
+			} finally {
 				latch.countDown();
 				log.info("剩余{}", latch.getCount());
 			}
