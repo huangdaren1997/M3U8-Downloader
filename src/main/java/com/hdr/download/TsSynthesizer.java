@@ -1,5 +1,6 @@
 package com.hdr.download;
 
+import cn.hutool.core.io.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
@@ -8,6 +9,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * ts文件合并然后转换成mp4格式的视频
@@ -91,6 +93,11 @@ public class TsSynthesizer {
 				System.out.println(line);
 			}
 		}
+		try {
+			process.waitFor();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private static void cleanUp(File[] files) {
@@ -100,11 +107,7 @@ public class TsSynthesizer {
 	}
 
 	public static void cleanUp(String tsFileLocation) {
-		try {
-			Files.delete(Paths.get(tsFileLocation));
-		} catch (IOException e) {
-			e.printStackTrace();
-			log.error("临时目录{}删除失败",tsFileLocation);
-		}
+			File file = new File(tsFileLocation);
+			FileUtil.del(file);
 	}
 }
