@@ -39,7 +39,6 @@ public class Main {
 		doDownload();
 
 		TsSynthesizer.merge(tempPath, filmPath);
-		TsSynthesizer.cleanUp(tempPath);
 	}
 
 	private static void merge() {
@@ -59,7 +58,6 @@ public class Main {
 
 
 		TsSynthesizer.merge(tempPath, filmPath);
-		TsSynthesizer.cleanUp(tempPath);
 	}
 
 

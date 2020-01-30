@@ -20,7 +20,7 @@ import java.util.Objects;
 public class TsSynthesizer {
 
 	/**
-	 * 合并ts文件，然后转换成MP4格式的视频
+	 * 合并ts文件，然后转换成MP4格式的视频，合并后删除ts文件所在目录
 	 *
 	 * @param tsFileLocation ts文件所在路径
 	 * @param filmName       最终生成的视频的名字
@@ -36,6 +36,7 @@ public class TsSynthesizer {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		FileUtil.del(tsDir);
 	}
 
 	private static File[] listFile(File directory) {
@@ -56,13 +57,6 @@ public class TsSynthesizer {
 		}
 	}
 
-	/**
-	 * 创建合并ts文件的ffmpeg命令
-	 *
-	 * @param tsFiles  ts文件
-	 * @param filmName 最终合成的视频名称
-	 * @return
-	 */
 	private static List<String> createCommands(File[] tsFiles, String filmName) {
 		ArrayList<String> cms = new ArrayList<>();
 		cms.add("ubuntu1804.exe");
@@ -82,7 +76,6 @@ public class TsSynthesizer {
 		return cms;
 	}
 
-
 	private static void executeCommand(List<String> cms, String executeLocation) throws IOException {
 		ProcessBuilder processBuilder = new ProcessBuilder(cms);
 		processBuilder.directory(new File(executeLocation));
@@ -100,14 +93,4 @@ public class TsSynthesizer {
 		}
 	}
 
-	private static void cleanUp(File[] files) {
-		for (File f : files) {
-			f.delete();
-		}
-	}
-
-	public static void cleanUp(String tsFileLocation) {
-			File file = new File(tsFileLocation);
-			FileUtil.del(file);
-	}
 }
