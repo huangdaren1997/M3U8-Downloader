@@ -3,9 +3,13 @@ package com.hdr;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpStatus;
-import com.hdr.download.TsSynthesizer;
 import com.hdr.header.AvgleHeader;
+import com.hdr.utils.CmdLineArgs;
+import com.hdr.utils.TsCombiner;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -35,11 +39,12 @@ public class Main {
 	private static String filmPath;
 
 
-	private static void downloadP() {
-		initByProperties();
+
+	private static void downloadP(String propertiesPath) {
+		initByProperties(propertiesPath);
 		doDownload();
 
-		TsSynthesizer.merge(tempPath, filmPath);
+		TsCombiner.merge(tempPath, filmPath);
 	}
 
 
@@ -47,7 +52,7 @@ public class Main {
 		init();
 		doDownload();
 
-		TsSynthesizer.merge(tempPath, filmPath);
+		TsCombiner.merge(tempPath, filmPath);
 	}
 
 	private static void merge() {
@@ -66,7 +71,7 @@ public class Main {
 		filmPath = String.format("../%s.mp4", name);
 
 
-		TsSynthesizer.merge(tempPath, filmPath);
+		TsCombiner.merge(tempPath, filmPath);
 	}
 
 
@@ -100,21 +105,27 @@ public class Main {
 
 	}
 
-	private static void initByProperties() {
-		Scanner scanner = new Scanner(System.in);
-		log.info("请输入properties文件所在路径:");
-		String path = scanner.nextLine();
-		try (BufferedReader br = Files.newBufferedReader(Paths.get(path))) {
+	private static void initByProperties(String propertiesPath) {
+		try (BufferedReader br = Files.newBufferedReader(Paths.get(propertiesPath))) {
 			Properties prop = new Properties();
 			prop.load(br);
 
 			String m3u8Path = prop.getProperty("m3u8Path");
-			String videoUrl = prop.getProperty("videoUrl");
 			String savePath = prop.getProperty("savePath");
+			String videoUrl = prop.getProperty("videoUrl");
 			String saveName = prop.getProperty("saveName");
 
-			assert videoUrl != null;
-			assert saveName != null;
+			Scanner scanner = new Scanner(System.in);
+
+			if (StringUtils.isBlank(videoUrl)){
+				log.info("请输入下载视频的URL:");
+				videoUrl = scanner.nextLine();
+			}
+
+			if (StringUtils.isNotBlank(saveName)){
+				log.info("请输入视频名称:");
+				saveName = scanner.nextLine();
+			}
 
 
 			if (!(new File(m3u8Path).exists())) throw new RuntimeException("m3u8Path有误:" + m3u8Path);
@@ -127,7 +138,7 @@ public class Main {
 			filmPath = String.format("../%s.mp4", saveName);
 
 		} catch (IOException e) {
-			log.error("文件{}不存在", path, e);
+			log.error("文件{}不存在", propertiesPath, e);
 		}
 
 	}
@@ -145,9 +156,9 @@ public class Main {
 			executor.execute(new Downloader(tsUrl, tempPath, tsName, header));
 		}
 
-		executor.shutdown();
 		try {
 			latch.await();
+			executor.shutdown();
 			if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
 				executor.shutdownNow();
 				if (!executor.awaitTermination(1, TimeUnit.SECONDS)) log.error("executor did not terminate");
@@ -173,18 +184,24 @@ public class Main {
 
 	public static void main(String[] args) {
 		long start = System.currentTimeMillis();
-		if (args.length == 0) throw new IllegalArgumentException("参数不能为空");
-		if (args[0].equals("download")) {
-			download();
-		} else if (args[0].equals("merge")) {
-			merge();
-		} else if (args[0].equals("clean")) {
+		CmdLineArgs cmdLineArgs = new CmdLineArgs();
+		CmdLineParser parser = new CmdLineParser(cmdLineArgs);
 
-		} else if (args[0].equals("downloadP")) {
-			downloadP();
-		} else {
-			log.warn("unknown option {}", args[0]);
+		try {
+			parser.parseArgument(args);
+		} catch (CmdLineException e) {
+			e.printStackTrace();
 		}
+
+		if (cmdLineArgs.downloadFlag){
+			String propertiesPath = cmdLineArgs.propertiesPath;
+			if (!StringUtils.isEmpty(propertiesPath)){
+				downloadP(propertiesPath);
+			}else{
+				download();
+			}
+		}
+
 
 
 		long end = System.currentTimeMillis();
@@ -208,7 +225,14 @@ public class Main {
 
 		@Override
 		public void run() {
-			try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(savePath + File.separator + tsName))) {
+			File file = new File(savePath + File.separator + tsName);
+			if (file.exists()){
+				log.info("{}文件已存在",file.getName());
+				latch.countDown();
+				log.info("剩余{}", latch.getCount());
+				return;
+			}
+			try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(file))) {
 				HttpResponse response = HttpRequest.get(tsUrl).header(header).timeout(10 * 1000).execute();
 				if (response.getStatus() == HttpStatus.HTTP_OK) {
 					bos.write(response.bodyBytes());

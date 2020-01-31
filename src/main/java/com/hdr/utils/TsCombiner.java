@@ -1,15 +1,14 @@
-package com.hdr.download;
+package com.hdr.utils;
 
-import cn.hutool.core.io.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * ts文件合并然后转换成mp4格式的视频
@@ -17,7 +16,7 @@ import java.util.Objects;
  * @author Huang Da Ren
  */
 @Slf4j
-public class TsSynthesizer {
+public class TsCombiner {
 
 	/**
 	 * 合并ts文件，然后转换成MP4格式的视频，合并后删除ts文件所在目录
@@ -28,15 +27,19 @@ public class TsSynthesizer {
 	public static void merge(String tsFileLocation, String filmName) {
 		File tsDir = new File(tsFileLocation);
 		File[] tsFiles = listFile(tsDir);
-		assert tsFiles != null;
-		List<String> cms = createCommands(tsFiles, filmName);
-		cms.forEach(System.out::println);
+		if (tsFiles.length == 0) return;
+
+		String os = System.getProperty("os.name");
+		List<String> cms = os.toLowerCase().startsWith("win") ? createWindowsCommand(tsFiles, filmName) : createLinuxCommand(tsFiles, filmName);
+
 		try {
 			executeCommand(cms, tsFileLocation);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		FileUtil.del(tsDir);
+		Arrays.stream(tsFiles).forEach(File::delete);
+		tsDir.delete();
+
 	}
 
 	private static File[] listFile(File directory) {
@@ -57,10 +60,25 @@ public class TsSynthesizer {
 		}
 	}
 
-	private static List<String> createCommands(File[] tsFiles, String filmName) {
+	private static List<String> createWindowsCommand(File[] tsFiles, String filmName) {
 		ArrayList<String> cms = new ArrayList<>();
-		cms.add("ubuntu1804.exe");
-		cms.add("run");
+		StringBuilder sb = new StringBuilder();
+		sb.append("ffmpeg.exe -i concat:");
+		sb.append("'");
+		Arrays.stream(tsFiles).forEach(file -> sb.append(file.getName()).append("|"));
+		sb.append("' ");
+		sb.append("-c copy ");
+		sb.append(filmName);
+		cms.add(sb.toString());
+		cms.forEach(System.out::println);
+		return cms;
+	}
+
+	private static List<String> createLinuxCommand(File[] tsFiles, String filmName) {
+		//  /bin/bash -c "ffmpeg -i concat:"0.ts|1.ts|2.ts| -c copy fileName""
+		ArrayList<String> cms = new ArrayList<>();
+		cms.add("/bin/bash");
+		cms.add("-c");
 
 		StringBuilder sb = new StringBuilder();
 		sb.append("ffmpeg -i concat:");
@@ -72,7 +90,7 @@ public class TsSynthesizer {
 		sb.append("-c copy ");
 		sb.append(filmName);
 		cms.add(sb.toString());
-		//  /bin/bash -c "ffmpeg -i concat:"0.ts|1.ts|2.ts| -c copy fileName""
+		cms.forEach(System.out::println);
 		return cms;
 	}
 
