@@ -13,6 +13,7 @@ import org.kohsuke.args4j.CmdLineParser;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,6 @@ public class Main {
 	private static Map<String, List<String>> header;
 	private static String tempPath;
 	private static String filmPath;
-
 
 
 	private static void downloadP(String propertiesPath) {
@@ -76,37 +76,72 @@ public class Main {
 
 
 	private static void init() {
-		Scanner scanner = new Scanner(System.in);
-		for (; ; ) {
-			log.info("请输入m3u8文件所在路径:");
-			String m3u8Path = scanner.nextLine();
-			m3u8 = new File(m3u8Path);
-			if (m3u8.exists()) break;
-			log.error("文件{}不存在", m3u8Path);
+
+		String m3u8Path = null;
+		String videoUrl = null;
+		String savePath = null;
+		String saveName = null;
+
+		// 读取默认配置
+		Path defaultConfigPath = Paths.get(System.getProperty("user.dir") + File.separator + "default.properties");
+		if (Files.exists(defaultConfigPath)) {
+			try (BufferedReader br = Files.newBufferedReader(defaultConfigPath)) {
+
+				Properties prop = new Properties();
+				prop.load(br);
+				m3u8Path = prop.getProperty("m3u8Path");
+				savePath = prop.getProperty("savePath");
+				videoUrl = prop.getProperty("videoUrl");
+				saveName = prop.getProperty("saveName");
+
+			} catch (IOException e) {
+				log.error("文件{}不存在", defaultConfigPath.toString(), e);
+			}
 		}
 
-		log.info("请输入下载视频的URL:");
-		String url = scanner.nextLine();
-		header = AvgleHeader.header(url);
+		// 补充缺乏的信息
+		try (Scanner scanner = new Scanner(System.in)) {
+			if (m3u8Path == null) {
+				for (; ; ) {
+					log.info("请输入m3u8文件所在路径:");
+					m3u8Path = scanner.nextLine();
+					m3u8 = new File(m3u8Path);
+					if (m3u8.exists()) break;
+					log.error("文件{}不存在", m3u8Path);
+				}
+			}
+
+			if (videoUrl == null) {
+				log.info("请输入下载视频的URL:");
+				videoUrl = scanner.nextLine();
+				header = AvgleHeader.header(videoUrl);
+			}
 
 
-		String basePath;
-		for (; ; ) {
-			log.info("请输入视频下载目录:");
-			basePath = scanner.nextLine();
-			if (new File(basePath).exists()) break;
-			log.error("目录不存在:{}", basePath);
+			if (savePath == null) {
+				for (; ; ) {
+					log.info("请输入视频下载目录:");
+					savePath = scanner.nextLine();
+					if (new File(savePath).exists()) break;
+					log.error("目录不存在:{}", savePath);
+				}
+			}
+
+			if (saveName == null) {
+				log.info("请输入视频名称:");
+				String name = scanner.nextLine();
+				tempPath = savePath.endsWith(File.separator) ? String.format("%s.%s", savePath, name) : String.format("%s%s.%s", savePath, File.separator, name);
+				filmPath = String.format("../%s.mp4", name);
+			}
 		}
-
-		log.info("请输入视频名称:");
-		String name = scanner.nextLine();
-		tempPath = basePath.endsWith(File.separator) ? String.format("%s.%s", basePath, name) : String.format("%s%s.%s", basePath, File.separator, name);
-		filmPath = String.format("../%s.mp4", name);
 
 	}
 
 	private static void initByProperties(String propertiesPath) {
-		try (BufferedReader br = Files.newBufferedReader(Paths.get(propertiesPath))) {
+		Path path = Files.exists(Paths.get(propertiesPath)) ? Paths.get(propertiesPath)
+				: Paths.get(System.getProperty("user.dir") + File.separator + "default.properties");
+
+		try (BufferedReader br = Files.newBufferedReader(path)) {
 			Properties prop = new Properties();
 			prop.load(br);
 
@@ -115,19 +150,8 @@ public class Main {
 			String videoUrl = prop.getProperty("videoUrl");
 			String saveName = prop.getProperty("saveName");
 
-			Scanner scanner = new Scanner(System.in);
-
-			if (StringUtils.isBlank(videoUrl)){
-				log.info("请输入下载视频的URL:");
-				videoUrl = scanner.nextLine();
-			}
-
-			if (StringUtils.isNotBlank(saveName)){
-				log.info("请输入视频名称:");
-				saveName = scanner.nextLine();
-			}
-
-
+			if (StringUtils.isBlank(videoUrl)) throw new RuntimeException("videoUrl can not be null");
+			if (StringUtils.isBlank(saveName)) throw new RuntimeException("saveName can not be null");
 			if (!(new File(m3u8Path).exists())) throw new RuntimeException("m3u8Path有误:" + m3u8Path);
 			if (!(new File(savePath).exists())) throw new RuntimeException("savePath有误:" + savePath);
 
@@ -135,7 +159,7 @@ public class Main {
 			m3u8 = new File(m3u8Path);
 			header = AvgleHeader.header(videoUrl);
 			tempPath = savePath.endsWith(File.separator) ? String.format("%s.%s", savePath, saveName) : String.format("%s%s.%s", savePath, File.separator, saveName);
-			filmPath = String.format("../%s.mp4", saveName);
+			filmPath = String.format("..%s%s.mp4", File.separator, saveName);
 
 		} catch (IOException e) {
 			log.error("文件{}不存在", propertiesPath, e);
@@ -193,15 +217,14 @@ public class Main {
 			e.printStackTrace();
 		}
 
-		if (cmdLineArgs.downloadFlag){
+		if (cmdLineArgs.downloadFlag) {
 			String propertiesPath = cmdLineArgs.propertiesPath;
-			if (!StringUtils.isEmpty(propertiesPath)){
+			if (StringUtils.isNotBlank(propertiesPath)) {
 				downloadP(propertiesPath);
-			}else{
+			} else {
 				download();
 			}
 		}
-
 
 
 		long end = System.currentTimeMillis();
@@ -226,8 +249,8 @@ public class Main {
 		@Override
 		public void run() {
 			File file = new File(savePath + File.separator + tsName);
-			if (file.exists()){
-				log.info("{}文件已存在",file.getName());
+			if (file.exists()) {
+				log.info("{}文件已存在", file.getName());
 				latch.countDown();
 				log.info("剩余{}", latch.getCount());
 				return;

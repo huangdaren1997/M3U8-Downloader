@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Scanner;
 
 /**
  * ts文件合并然后转换成mp4格式的视频
@@ -37,8 +38,14 @@ public class TsCombiner {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		Arrays.stream(tsFiles).forEach(File::delete);
-		tsDir.delete();
+
+		Scanner scanner = new Scanner(System.in);
+		log.info("是否删除临时文件? y/n");
+		boolean del = scanner.nextLine().contains("y");
+		if (del){
+			Arrays.stream(tsFiles).forEach(File::delete);
+			tsDir.delete();
+		}
 
 	}
 
