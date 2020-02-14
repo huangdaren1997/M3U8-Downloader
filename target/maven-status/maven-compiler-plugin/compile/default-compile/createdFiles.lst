@@ -1,0 +1,5 @@
+com\hdr\Main.class
+com\hdr\Main$Downloader.class
+com\hdr\header\AvgleHeader.class
+com\hdr\utils\TsCombiner.class
+com\hdr\utils\CmdLineArgs.class
